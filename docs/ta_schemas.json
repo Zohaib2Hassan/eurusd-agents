@@ -1,0 +1,99 @@
+{
+  "_note": "ILLUSTRATIVE schemas for the TA agent (spec 17.H). Not production-ready JSON Schema; they document fields, units and timestamps.",
+
+  "chart_analysis_request": {
+    "symbol": "EURUSD",
+    "symbol_convention": "BASEQUOTE, price = QUOTE per 1 BASE",
+    "timeframes": ["D1", "H4", "H1"],
+    "display_timezone": "Asia/Karachi",
+    "depth": "brief | deep",
+    "bars": 600,
+    "requested_at": "2026-11-20T17:48:08Z"
+  },
+
+  "market_data_record": {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "bar_open_utc": "2026-11-20T16:00:00Z",
+    "open": 1.09881, "high": 1.09912, "low": 1.09840, "close": 1.09889,
+    "price_type": "bid",
+    "tick_volume": 1832,
+    "tick_volume_note": "broker-specific tick count, NOT consolidated FX volume",
+    "spread_points": 8,
+    "source": {"provider": "MetaTrader 5", "server": "MetaQuotes-Demo"},
+    "retrieved_at_utc": "2026-11-20T17:48:07Z",
+    "completed": true
+  },
+
+  "indicator_request": {
+    "indicator": "rsi",
+    "params": {"n": 14},
+    "formula_variant": "wilder_rma_sma_seed",
+    "input": {"symbol": "EURUSD", "timeframe": "H1", "price": "close", "data_sha256": "3f9c1a0b7e21d4c8"},
+    "calc_version": "ta-calc/1.0.0"
+  },
+
+  "indicator_result": {
+    "indicator": "rsi",
+    "value": 43.93,
+    "unit": "index 0-100",
+    "as_of_bar_open_utc": "2026-11-20T16:00:00Z",
+    "warmup_bars": 14,
+    "formula_variant": "wilder_rma_sma_seed",
+    "calc_version": "ta-calc/1.0.0",
+    "data_sha256": "3f9c1a0b7e21d4c8"
+  },
+
+  "source_citation": {
+    "id": "wilder1978",
+    "author_or_institution": "J. Welles Wilder Jr.",
+    "title": "New Concepts in Technical Trading Systems",
+    "publisher_or_journal": "Trend Research",
+    "date": "1978",
+    "url": null,
+    "page_or_section": null,
+    "accessed_at": null,
+    "supports_claim": "Definition of RSI and Wilder smoothing",
+    "claim_label": "mathematical definition"
+  },
+
+  "backtest_config": {
+    "strategy_id": "ema_pullback_v1",
+    "symbol": "EURUSD", "timeframe": "H1",
+    "train": ["2018-01-01T00:00:00Z", "2022-12-31T23:00:00Z"],
+    "validation": ["2023-01-01T00:00:00Z", "2024-06-30T23:00:00Z"],
+    "test_holdout": ["2024-07-01T00:00:00Z", "2026-06-30T23:00:00Z"],
+    "signal_timing": "computed on bar close t, order at open of bar t+1",
+    "fill_model": {
+      "entry": "ask for buys / bid for sells at next open + slippage_pips",
+      "stop_and_target_same_bar": "assume STOP hit first (conservative)",
+      "gap_through_stop": "fill at bar open, not at stop price"
+    },
+    "costs": {"spread": "historical bid/ask", "commission_per_lot_usd": 7.0, "slippage_pips": 0.3, "swap": "broker swap table"},
+    "variants_tested": 0,
+    "selection_procedure": "nested walk-forward on train/validation only",
+    "calc_version": "ta-calc/1.0.0",
+    "code_version": "git sha"
+  },
+
+  "analysis_response": {
+    "schema": "ta.analysis_response/1",
+    "agent_version": "ta-agent/1.0.0",
+    "calc_version": "ta-calc/1.0.0",
+    "status": "ok | partial | failed",
+    "instrument": {"symbol": "EURUSD", "base": "EUR", "quote": "USD", "convention": "price = USD per 1 EUR", "pip_size": 0.0001, "price_type": "bid (MT5 bars)"},
+    "source": {"provider": "MetaTrader 5", "server": "MetaQuotes-Demo", "account_type": "DEMO"},
+    "generated_at_utc": "2026-11-20T17:48:08+00:00",
+    "generated_at_local": "2026-11-20T22:48:08+05:00",
+    "quote_now": {"bid": 1.09889, "ask": 1.09897, "spread_points": 8},
+    "timeframes": {"D1": {"as_of_bar_open_utc": "...", "quality": 1.0, "warnings": [], "indicators": {}, "structure": {}, "zones": [], "nearest": {}, "rule_labels": [], "score": -0.24, "volatility_regime": "normal"}},
+    "summary": {"composite_score": -0.08, "agreement": 0.33, "data_quality": 1.0, "confidence": 0.47, "lean": "neutral", "execution_timeframe": "H4", "pivots_daily": {}},
+    "scenarios": [{"name": "bullish", "trigger": "H4 close above ...", "next_reference": "zone ...", "invalidation": "H4 close below ...", "aligned_with_composite": false}],
+    "events": {"source": "ForexFactory weekly calendar feed (scheduled, not results)", "high_impact_next_24h": []},
+    "uncertainty": ["..."],
+    "facts_vs_interpretation": {"facts": "...", "rule_interpretation": "...", "model_interpretation": "..."},
+    "narrative": {"label": "MODEL INTERPRETATION (not a fact)", "observed": "...", "interpretation": "...", "what_would_change_the_view": "..."},
+    "data_ids": {"D1": "sha256 prefix"},
+    "read_only": true
+  }
+}

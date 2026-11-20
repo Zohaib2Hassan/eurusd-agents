@@ -1,0 +1,83 @@
+# ============================================================
+#  EUR/USD Multi-Agent Trader - configuration
+# ============================================================
+
+symbol: EURUSD            # the ONLY symbol the system is allowed to read or trade
+
+# --- Run mode -------------------------------------------------
+# dry_run : analyse + log decisions, NEVER sends orders (default)
+# demo    : sends orders, but ONLY if the MT5 account is a DEMO account
+# live    : real money. Also requires allow_live: true below.
+mode: dry_run
+allow_live: false
+require_approval: true    # ask you "y/n" in the console before every order
+loop_minutes: 15          # how often main.py --loop runs a cycle
+
+# --- MetaTrader 5 ----------------------------------------------
+mt5:
+  terminal_path: "C:\\Program Files\\MetaTrader 5\\terminal64.exe"   # e.g. C:\Program Files\MetaTrader 5\terminal64.exe (empty = auto)
+  login: ""               # leave empty to use the account already logged in
+  password: ""
+  server: ""
+  magic: 260411           # tag for orders placed by this bot
+  server_utc_offset_hours: ""   # empty = auto-detect broker server time offset (e.g. 2 for UTC+2)
+  use_mock_if_unavailable: true   # synthetic data when MT5 is not running (testing only)
+
+# --- Charts the technical agent reads (EURUSD only) -----------
+timeframes:
+  trend: H4
+  entry: H1
+bars: 500
+
+# --- AI model --------------------------------------------------
+# provider: anthropic | openai | ollama | lemonade | none
+#   none = rule-based only, no AI calls (free, works offline)
+llm:
+  provider: none
+  model: ""               # e.g. claude-sonnet-4-5, gpt-5-mini, llama3.1 (empty = provider default)
+  base_url: ""            # for ollama/lemonade, e.g. http://localhost:11434/v1
+  temperature: 0.2
+
+# --- News agent ------------------------------------------------
+news:
+  enabled: true
+  calendar_url: https://nfs.faireconomy.media/ff_calendar_thisweek.json
+  currencies: [EUR, USD]
+  blackout_minutes_before: 30   # no new trades this close to a high-impact event
+  blackout_minutes_after: 30
+  rss_feeds:
+    - https://www.forexlive.com/feed/news
+    - https://www.fxstreet.com/rss/news
+    - https://www.ecb.europa.eu/rss/press.html
+    - https://www.federalreserve.gov/feeds/press_all.xml
+  max_headlines: 25
+
+# --- Risk rules (enforced in code, AI cannot override) --------
+risk:
+  risk_per_trade_pct: 0.5       # % of balance risked per trade
+  max_daily_loss_pct: 2.0       # stop trading for the day after this loss
+  max_open_positions: 1
+  max_spread_points: 20         # 20 points = 2.0 pips on 5-digit brokers
+  atr_sl_multiplier: 1.5        # stop loss = ATR * this
+  reward_risk: 2.0              # take profit = SL distance * this
+  min_confidence: 0.6           # orchestrator confidence needed to trade
+  min_lot: 0.01
+  max_risk_pct_min_lot: 2.0     # small accounts: allow 0.01 lot if its risk is <= this % of balance
+  max_lot: 1.0
+
+# --- Your formulas (quant agent) -------------------------------
+# Each rule votes +1 (buy), -1 (sell) or 0. Edit or add rules in agents/quant_agent.py
+quant:
+  rsi_period: 14
+  rsi_overbought: 70
+  rsi_oversold: 30
+  ema_fast: 20
+  ema_slow: 50
+  ema_trend: 200
+
+# --- Technical Analysis agent (ta/) ---------------------------
+ta:
+  timeframes: [D1, H4, H1]      # read higher timeframe first
+  bars: 600
+  display_timezone: Asia/Karachi
+  audit_dir: logs/ta
