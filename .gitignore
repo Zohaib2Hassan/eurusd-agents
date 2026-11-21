@@ -1,4 +1,4 @@
-﻿# secrets
+# secrets
 .env
 # environment / caches
 .venv/
@@ -9,5 +9,5 @@ __pycache__/
 logs/
 
 # QUANT-X local research data and reports
-data/
-reports/
+/data/
+/reports/
