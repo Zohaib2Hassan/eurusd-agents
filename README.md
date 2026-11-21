@@ -68,3 +68,18 @@ It is also the "technical" analyst inside `main.py`.
 .venv\Scripts\python.exe tests\test_ta.py    # 19 golden / cross-check / safety tests
 ```
 Design: `docs/TA_AGENT_DESIGN.md` · Schemas: `docs/ta_schemas.json`
+
+## QUANT-X quantitative research (`quantx/`) - Phase 1
+Read-only research platform: data collection with provenance (MT5 any symbol, Binance public crypto),
+calendar-aware validation, statistics (normality, autocorrelation, stationarity, variance ratio, Hurst),
+volatility (EWMA, GARCH/GJR-GARCH), regimes (Markov-switching), risk (VaR/CVaR x3 + Kupiec backtest,
+drawdowns), cross-asset correlation, Supervisor checks, 15-section reports, SQLite research store.
+
+```
+.venv\Scripts\python.exe quantx_cli.py analyze EURUSD
+.venv\Scripts\python.exe quantx_cli.py analyze XAUUSD --tf H4 --bars 3000
+.venv\Scripts\python.exe quantx_cli.py compare EURUSD GBPUSD USDJPY XAUUSD
+.venv\Scripts\python.exe quantx_cli.py analyze BTCUSDT --source binance
+.venv\Scripts\python.exe tests\test_quantx.py
+```
+Design & roadmap: `docs/QUANTX_DESIGN.md` · DB schema: `docs/quantx_schema.sql`

@@ -61,21 +61,14 @@ class Market:
         return True
 
     def _detect_server_offset(self) -> pd.Timedelta:
-        """MT5 timestamps are broker SERVER time. Offset = server - UTC, rounded to 30 min,
-        estimated from the latest tick (only reliable while the market is trading)."""
-        override = self.mcfg.get("server_utc_offset_hours")
-        if override not in (None, ""):
-            return pd.Timedelta(hours=float(override))
+        """Broker SERVER time -> UTC (see agents/server_time.py for the method order)."""
+        from .server_time import infer_offset
         t = mt5.symbol_info_tick(self.symbol)
-        if t is None or not t.time:
-            return pd.Timedelta(0)
-        diff = t.time - datetime.now(timezone.utc).timestamp()
-        off = round(diff / 1800) * 1800
-        if abs(diff - off) > 600:  # tick is old (weekend) -> can't infer reliably
-            log.warning("Could not infer broker server offset (old tick); set mt5.server_utc_offset_hours")
-            return pd.Timedelta(0)
-        log.info("Broker server time offset: UTC%+.1f h", off / 3600)
-        return pd.Timedelta(seconds=off)
+        sec, method = infer_offset(t.time if t else None, mt5.account_info().server,
+                                   self.mcfg.get("server_utc_offset_hours"))
+        log.info("Broker server time offset: UTC%+.1f h (%s)", sec / 3600, method)
+        self.offset_method = method
+        return pd.Timedelta(seconds=sec)
 
     def _fallback(self, why: str) -> bool:
         if self.mcfg.get("use_mock_if_unavailable", True):

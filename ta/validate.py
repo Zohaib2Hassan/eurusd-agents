@@ -30,7 +30,9 @@ def market_open(now: datetime) -> bool:
     return True
 
 
-def validate(df: pd.DataFrame, timeframe: str, now: datetime | None = None) -> tuple[pd.DataFrame, list[str], float, dict]:
+def validate(df: pd.DataFrame, timeframe: str, now: datetime | None = None,
+             calendar: str = "fx") -> tuple[pd.DataFrame, list[str], float, dict]:
+    """calendar: 'fx' (24x5, weekend gap expected) or '24x7' (crypto: no expected gaps)."""
     now = now or datetime.now(timezone.utc)
     warn: list[str] = []
     score = 1.0
@@ -63,7 +65,7 @@ def validate(df: pd.DataFrame, timeframe: str, now: datetime | None = None) -> t
     if len(df) > 2:
         d = df.index.to_series().diff().iloc[1:]
         big = d[d > tf * (1.5 if timeframe != "D1" else 3.5)]
-        unexpected = [(i, g) for i, g in big.items() if not _weekend_gap(i - g, i)]
+        unexpected = [(i, g) for i, g in big.items() if calendar == "24x7" or not _weekend_gap(i - g, i)]
         if unexpected:
             warn.append(f"{len(unexpected)} unexpected gaps (largest {max(g for _, g in unexpected)})")
             score -= min(0.2, 0.02 * len(unexpected))
@@ -83,7 +85,7 @@ def validate(df: pd.DataFrame, timeframe: str, now: datetime | None = None) -> t
         age = pd.Timestamp(now) - (df.index[-1] + tf)
         meta["last_completed_bar"] = str(df.index[-1])
         meta["age_minutes"] = round(age.total_seconds() / 60, 1)
-        if market_open(now) and age > tf * 2 + pd.Timedelta(minutes=5):
+        if (calendar == "24x7" or market_open(now)) and age > tf * 2 + pd.Timedelta(minutes=5):
             warn.append(f"stale data: last completed bar is {age} old while market is open")
             score -= 0.3
 

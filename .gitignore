@@ -7,3 +7,7 @@ __pycache__/
 .pytest_cache/
 # runtime logs (decisions, audit files)
 logs/
+
+# QUANT-X local research data and reports
+data/
+reports/
