@@ -1,6 +1,6 @@
 # Agent 3: MicroEcon & Quant tutor (design)
 
-Code: `microecon/` · CLI: `micro_cli.py` · Tests: `tests/test_microecon.py` (31)
+Code: `microecon/` · CLI: `micro_cli.py` · Tests: `tests/test_microecon.py` (37)
 
 Agent 3 tutors and checks microeconomics, market microstructure and trading-risk maths. It has two
 modes from the specification (direct assistance and practice with automated grading) plus a bridge to
@@ -22,6 +22,8 @@ are unchanged.
 | `trading.py` | Expectancy, break-even win rate and dispersion over N trades; FX lot sizing with correct pip value for quote-USD, base-USD (e.g. USDJPY) and cross pairs; crypto unit sizing; DCA (harmonic-mean basis); cross-exchange arbitrage; perpetual funding carry; isolated-margin liquidation (spec approximation **and** exact formula); Kelly and fractional Kelly with growth rates; Monte Carlo risk of ruin and drawdowns; covered interest parity |
 | `bank.py` | The 8 specification problems, each 4 steps × 25 pts, with hints, worked solutions, takeaways and answer-key correction notes |
 | `grader.py` | Number extraction, rubric, sessions (hint cap 80%, "show solution" = 0 for remaining steps, 3 attempts then reveal), score table and mastery tier |
+| `generator.py` | 13 seeded topics with unlimited new problems: tax incidence, price ceiling, monopoly & Lerner index, asymmetric Cournot + HHI, Stackelberg, 2×2 Nash (pure & mixed), Slutsky decomposition, Cobb-Douglas cost minimisation, forex sizing across pair types (incl. USDJPY pip value), long/short liquidation, Kelly & break-even, covered interest parity & carry, funding carry. Keys come from the solvers; the same seed always gives the same problem |
+| `progress.py` | Local practice log (`data/microecon_progress.jsonl`, git-ignored): attempts, recent average and tier per topic, suggested next topic |
 | `microstructure.py` | MT5 quoted spread, Roll (1984) effective spread, Corwin-Schultz (2012) high-low spread, Amihud (2002) illiquidity (exchange volume only) |
 
 ## Grading rubric (implemented)
@@ -32,6 +34,11 @@ are unchanged.
 | ≤ 10% off | 65% (minor slip) |
 | a number, further off | 35% (conceptual/algebraic flaw) |
 | no number | 0% |
+
+**Mistake diagnosis:** each step can list common wrong answers (forgetting the fixed cost, using quantity
+supplied under a floor, $10/pip on USDJPY, a missing ½ in a triangle, statutory vs economic incidence, ...).
+If a student's number matches one, the agent explains the likely mistake instead of giving a generic hint,
+and the step counts as a conceptual error (at most 59%), never a "minor slip".
 
 The step score is the mean over its targets. Text steps (risks, limits) score by coverage of concept
 groups. The pass mark is 75% per step; below that the student gets a targeted hint and a retry.
@@ -57,7 +64,7 @@ much of the reference list is unrelated to finance (nanoparticle optics, oncolog
 a candidate for a replication exercise once Phase 3 has a walk-forward framework.
 
 ## Next extensions
-- More problems (tax incidence, Stackelberg, Bertrand with capacity, Slutsky, CIP), generated with random
-  parameters and solver-computed keys.
+- Bertrand with capacity constraints, price discrimination, externalities/Pigouvian tax, adverse selection (lemons) topics.
+- Adaptive difficulty: pick the next topic from the progress log automatically.
 - Optional LLM layer that explains a student's mistake in words while the score stays from the rubric.
 - Order-book microstructure (Kyle's lambda, order-flow imbalance) when tick/trade data are available.

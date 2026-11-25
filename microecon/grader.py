@@ -51,6 +51,18 @@ def _target_score(nums: list[float], target) -> tuple[float, float | None]:
     return 0.35, best
 
 
+def _diagnose(step: Step, nums: list[float], scores: list[float]) -> list[str]:
+    """Match the student's numbers against known wrong answers (only when not already fully correct)."""
+    if all(sc >= 1.0 for sc in scores):
+        return []
+    msgs = []
+    for wrong, msg in step.misconceptions:
+        if any(abs(n - wrong) <= 0.005 * max(abs(wrong), 1e-9) for n in nums) and \
+                not any(abs(wrong - t.value) <= t.tol * max(abs(t.value), 1e-9) for t in step.targets):
+            msgs.append(msg)
+    return msgs
+
+
 def grade_step(step: Step, answer: str, hint_used: bool = False) -> dict:
     detail = []
     if step.targets:
@@ -64,6 +76,10 @@ def grade_step(step: Step, answer: str, hint_used: bool = False) -> dict:
             scores.append(sc)
             detail.append({"label": t.label, "expected": round(t.value, 6), "matched": used, "score": sc})
         frac = sum(scores) / len(scores)
+        diag = _diagnose(step, nums, scores)
+        if diag:
+            detail.append({"diagnosis": diag})
+            frac = min(frac, 0.59)          # a recognised conceptual error is never a "minor slip"
     else:
         a = answer.lower()
         hits = [any(k in a for k in grp) for grp in step.concepts]
@@ -91,6 +107,7 @@ class Session:
     scores: list = field(default_factory=list)   # best fraction per completed step
     attempts: dict = field(default_factory=dict)
     revealed: bool = False
+    quit: bool = False
 
     @property
     def weight(self) -> float:
@@ -136,18 +153,22 @@ class Session:
                           f"**Final score: {total:.1f}% - {tier(total)}**", "", f"Takeaway: {self.problem.takeaway}"])
 
 
-def run_interactive(pid: int | None = None, inp=input, out=print):
+def run_interactive(pid=None, inp=input, out=print, problem: Problem | None = None, record_progress: bool = True):
     import random
-    p = BANK[pid] if pid else BANK[random.choice(list(BANK))]
+    p = problem or (BANK[pid] if pid else BANK[random.choice(list(BANK))])
     s = Session(p)
-    out(f"\n### Problem {p.pid}: {p.topic}  |  Difficulty: {p.difficulty}  |  {len(p.steps)} steps × {s.weight:.0f} pts")
+    tag = f"seed {p.seed}" if p.seed is not None else f"bank #{p.pid}"
+    out(f"\n### {p.topic} ({tag})  |  Difficulty: {p.difficulty}  |  {len(p.steps)} steps × {s.weight:.0f} pts")
     out(f"Given: {p.given}\nCommands: 'hint' (caps the step at 80%), 'show solution' (0 for remaining steps), 'quit'\n")
     while not s.done():
         st = p.steps[s.step_i]
         out(f"Step {s.step_i + 1}: {st.prompt}")
-        a = inp("> ").strip()
+        try:
+            a = inp("> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            a = "quit"
         if a.lower() in ("quit", "exit"):
-            out("Session ended."); return s
+            out("Session ended."); s.quit = True; return s
         if a.lower() == "hint":
             out(f"Hint: {s.hint()}"); continue
         if a.lower() == "show solution":
@@ -161,7 +182,16 @@ def run_interactive(pid: int | None = None, inp=input, out=print):
                 out(f"Note on the answer key: {st.correction}")
             out(f"Running total: {sum(s.scores) * s.weight:.1f} / {len(s.scores) * s.weight:.0f}\n")
         else:
-            wrong = [d for d in g["detail"] if d.get("score", 1) < 0.75 or d.get("found") is False]
-            out(f"Not yet - check {', '.join(d.get('label') or d.get('concept') for d in wrong)}. Hint: {st.hint}\nTry this step again.\n")
+            wrong = [d for d in g["detail"] if ("label" in d and d["score"] < 0.75) or d.get("found") is False]
+            diags = [m for d in g["detail"] for m in d.get("diagnosis", [])]
+            out(f"Not yet - check {', '.join(d.get('label') or d.get('concept') for d in wrong) or 'your working'}.")
+            for m in diags:
+                out(f"Likely mistake: {m}")
+            if not diags:
+                out(f"Hint: {st.hint}")
+            out("Try this step again.\n")
     out("\n" + s.report())
+    if record_progress:
+        from .progress import record
+        record(p.topic_key, p.topic, p.seed, sum(s.scores) * s.weight, len(s.hints), s.revealed)
     return s

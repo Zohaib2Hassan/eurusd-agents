@@ -2,8 +2,13 @@
 
 MODE B - practice with automated grading:
   python micro_cli.py practice              random problem from the bank
-  python micro_cli.py practice --problem 4
-  python micro_cli.py list                  show the problem bank
+  python micro_cli.py practice --problem 4  a bank problem
+  python micro_cli.py practice --topic tax  a NEW generated problem (add --seed 7 to repeat one)
+  python micro_cli.py quiz --n 3            several generated problems, one overall score
+  python micro_cli.py quiz --n 4 --topics monopoly,cournot,stackelberg
+  python micro_cli.py topics                generator topics
+  python micro_cli.py list                  the fixed problem bank
+  python micro_cli.py progress              your scores by topic + suggested next topic
 
 MODE A - direct assistance (Given -> Formulas -> Steps -> Interpretation):
   python micro_cli.py solve market 500 10 -100 15 --floor 30
@@ -33,7 +38,9 @@ from pathlib import Path
 
 from microecon import econ, trading as tr
 from microecon.bank import BANK
-from microecon.grader import run_interactive
+from microecon.generator import TOPICS, generate
+from microecon.grader import run_interactive, tier
+from microecon.progress import render as render_progress
 
 ROOT = Path(__file__).parent
 
@@ -114,7 +121,10 @@ def main():
     ap = argparse.ArgumentParser(description="Agent 3: MicroEcon & Quant tutor")
     sub = ap.add_subparsers(dest="cmd", required=True)
     pr = sub.add_parser("practice"); pr.add_argument("--problem", type=int)
-    sub.add_parser("list")
+    pr.add_argument("--topic", choices=sorted(TOPICS)); pr.add_argument("--seed", type=int)
+    qz = sub.add_parser("quiz"); qz.add_argument("--n", type=int, default=3); qz.add_argument("--topics")
+    qz.add_argument("--seed", type=int)
+    sub.add_parser("list"); sub.add_parser("topics"); sub.add_parser("progress")
     so = sub.add_parser("solve")
     so.add_argument("kind")
     so.add_argument("x", nargs="*", type=float)
@@ -138,8 +148,36 @@ def main():
         for p in BANK.values():
             corr = sum(1 for s in p.steps if s.correction)
             print(f"{p.pid}. {p.topic} ({p.difficulty}, {len(p.steps)} steps)" + (f"  [{corr} answer-key note]" if corr else ""))
+    elif a.cmd == "topics":
+        for k, (title, diff, _) in TOPICS.items():
+            print(f"{k:12s} {title} ({diff})")
+    elif a.cmd == "progress":
+        print(render_progress())
     elif a.cmd == "practice":
-        run_interactive(a.problem)
+        if a.topic:
+            run_interactive(problem=generate(a.topic, a.seed))
+        else:
+            run_interactive(a.problem)
+    elif a.cmd == "quiz":
+        import random
+        pool = a.topics.split(",") if a.topics else list(TOPICS)
+        bad = [t for t in pool if t not in TOPICS]
+        if bad:
+            raise SystemExit(f"unknown topics {bad}; see: python micro_cli.py topics")
+        rng = random.Random(a.seed)
+        picks = [pool[i % len(pool)] for i in range(a.n)] if a.topics else rng.sample(pool, min(a.n, len(pool)))
+        results = []
+        for i, t in enumerate(picks, 1):
+            print(f"\n======== Quiz problem {i}/{len(picks)} ========")
+            sess = run_interactive(problem=generate(t, rng.randrange(10 ** 6)))
+            results.append((sess.problem.topic, sum(sess.scores) * sess.weight))
+            if sess.quit:
+                break
+        total = sum(sc for _, sc in results) / max(len(results), 1)
+        print("\n## Quiz summary")
+        for title, sc in results:
+            print(f"- {title}: {sc:.1f}/100")
+        print(f"**Overall: {total:.1f}% - {tier(total)}**")
     elif a.cmd == "solve":
         print(solve(a).render())
     elif a.cmd == "liquidity":

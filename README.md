@@ -91,6 +91,9 @@ by the solvers (the spec's Problem 4 key was wrong: expectancy is +$600, not +$9
 ```
 python micro_cli.py list                                   # problem bank
 python micro_cli.py practice --problem 3                   # graded practice (hint / show solution / quit)
+python micro_cli.py practice --topic stackelberg           # NEW problem from 13 generated topics (micro_cli.py topics)
+python micro_cli.py quiz --n 3                             # several problems, one overall score
+python micro_cli.py progress                               # mastery by topic + what to practise next
 python micro_cli.py solve market 500 10 -100 15 --floor 30 # direct assistance, step by step
 python micro_cli.py solve fx 50000 1.5 1.0850 1.0810 --target 1.0970 --winrate 0.45
 python micro_cli.py solve liq 3000 --lev 10

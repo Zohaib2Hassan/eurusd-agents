@@ -216,6 +216,71 @@ def test_amihud_units():
     assert abs(r["illiq_per_billion_usd"] - round(exp, 6)) < 1e-6
 
 
+# ---------------------------------------------------------------- generator, diagnosis, progress
+def test_generator_all_topics_selfconsistent():
+    from microecon.generator import TOPICS, generate
+    assert len(TOPICS) >= 12
+    for k in TOPICS:
+        for seed in range(40):
+            p = generate(k, seed)
+            assert len(p.steps) == 4 and p.topic_key == k
+            for st in p.steps:
+                assert st.hint and st.solution
+                assert all(math.isfinite(t.value) for t in st.targets)
+                ans = " ; ".join(f"{t.value:.6g}" for t in st.targets)
+                assert grade_step(st, ans)["fraction"] == 1.0, (k, seed, st.prompt, ans)
+
+
+def test_generator_reproducible_by_seed():
+    from microecon.generator import generate
+    a, b = generate("tax", 42), generate("tax", 42)
+    assert a.given == b.given and [t.value for t in a.steps[1].targets] == [t.value for t in b.steps[1].targets]
+    assert generate("tax", 43).given != a.given
+
+
+def test_misconception_detected_and_capped():
+    st = BANK[2].steps[1]                         # Qm 25, Pm 70, profit 1150
+    g = grade_step(st, "Q = 25, P = 70, profit 1250")
+    diag = [m for d in g["detail"] for m in d.get("diagnosis", [])]
+    assert diag and "fixed cost" in diag[0] and g["fraction"] <= 0.59 and not g["passed"]
+    assert not [m for d in grade_step(st, "25, 70, 1150")["detail"] for m in d.get("diagnosis", [])]
+
+
+def test_generated_jpy_pip_value_misconception():
+    from microecon.generator import generate
+    for seed in range(200):
+        p = generate("fxsize", seed)
+        if "USDJPY" in p.given:
+            st = p.steps[1]
+            g = grade_step(st, "10")
+            assert any("QUOTE currency" in m for d in g["detail"] for m in d.get("diagnosis", []))
+            return
+    raise AssertionError("no USDJPY case in 200 seeds")
+
+
+def test_interactive_session_scripted(tmp="/tmp/mprog.jsonl"):
+    from microecon import progress
+    from microecon.generator import generate
+    from microecon.grader import run_interactive
+    Path(tmp).unlink(missing_ok=True)
+    progress.LOG = Path(tmp)
+    p = generate("kelly", 3)
+    answers = iter([" ; ".join(f"{t.value:.6g}" for t in st.targets) for st in p.steps])
+    out = []
+    sess = run_interactive(problem=p, inp=lambda _: next(answers), out=out.append)
+    assert abs(sum(sess.scores) * sess.weight - 100) < 1e-9 and any("Mastery" in o for o in out)
+    s = progress.summary(Path(tmp))
+    assert s["kelly"]["attempts"] == 1 and s["kelly"]["recent_avg"] == 100.0
+
+
+def test_interactive_eof_quits_cleanly():
+    from microecon.grader import run_interactive
+    def eof(_):
+        raise EOFError
+    s = run_interactive(pid=1, inp=eof, out=lambda *_: None, record_progress=False)
+    assert s.quit and not s.done()
+
+
 def test_microecon_has_no_order_code():
     src = "".join(p.read_text() for p in (Path(__file__).resolve().parents[1] / "microecon").rglob("*.py"))
     assert "order_send" not in src

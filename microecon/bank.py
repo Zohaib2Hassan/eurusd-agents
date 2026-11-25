@@ -26,6 +26,7 @@ class Step:
     hint: str = ""
     solution: str = ""
     correction: str = ""
+    misconceptions: list = field(default_factory=list)   # [(wrong_value, explanation), ...]
 
 
 @dataclass
@@ -36,6 +37,8 @@ class Problem:
     given: str
     steps: list
     takeaway: str
+    topic_key: str = "bank"
+    seed: int | None = None
 
 
 def _p1():
@@ -225,3 +228,33 @@ def _p8():
 
 
 BANK = {p.pid: p for p in (_p1(), _p2(), _p3(), _p4(), _p5(), _p6(), _p7(), _p8())}
+
+# Known wrong answers -> what the student most likely did (used for targeted feedback)
+_MIS = {
+    (1, 1): [(3120, "That is 1/2 x P* x Q*: CS is measured from the CHOKE price (50) down to P*, and PS from P* down to the "
+                    "supply intercept (6.67), not from zero.")],
+    (1, 2): [(350, "350 is quantity SUPPLIED at the floor. With a floor above equilibrium, buyers decide how much is traded (Qd).")],
+    (1, 3): [(180, "You used P* = 24 as the lower price. The DWL triangle runs down to the SUPPLY price at Q = 200, which is 20."),
+             (750, "You used the excess supply (150 units) as the base. DWL counts the trades LOST (260 - 200 = 60).")],
+    (2, 1): [(1250, "1,250 is revenue minus variable cost only - subtract the fixed cost of 100 to get profit."),
+             (50, "Q = 50 is where P = MC (competition). A monopolist produces where MR = MC."),
+             (20, "20 is MC (and MR at the optimum). The monopolist charges the price on the DEMAND curve at Qm.")],
+    (2, 3): [(1250, "That is the full rectangle (Pm - MC) x (Qc - Qm); a triangle needs the factor 1/2.")],
+    (3, 1): [(75, "75 is the reaction-function intercept (best response to Q2 = 0); solve both reaction functions jointly.")],
+    (3, 2): [(105, "105 is the cartel price; Cournot total output is 100, so P = 180 - 100.")],
+    (3, 3): [(100, "100 is the Cournot total; the cartel sets total MR = 180 - 2Q equal to MC.")],
+    (4, 2): [(18.75, "You divided dollar risk by pips only. Divide by (pips x pip value per lot = $10).")],
+    (4, 3): [(937.5, "This uses a $3,000 win. At 1.875 lots a 120-pip win is 120 x $10 x 1.875 = $2,250."),
+             (1350, "That is only the win term (0.45 x 3,000); subtract 0.55 x $750 and use the correct $2,250 win.")],
+    (5, 0): [(40666.67, "That is the simple mean of prices. Cost basis = total spent / total BTC (a harmonic mean).")],
+    (5, 2): [(800, "800 ignores every fee: subtract the 0.0005 BTC withdrawal, the 0.2% taker fee and the $10 network fee.")],
+    (6, 1): [(0.001111, "You divided risk by the ENTRY price. Units = dollar risk / stop distance ($1,800).")],
+    (7, 0): [(24, "That is one funding payment; multiply by the 90 periods."), (2160 / 90 * 3, "That is one day (3 payments).")],
+    (7, 2): [(3.4, "2,040 / 60,000 uses spot capital only; total capital is 60,000 + 12,000 margin = 72,000.")],
+    (8, 1): [(10, "10% is 1/leverage only - the maintenance margin (0.5%) liquidates you before the full margin is gone.")],
+    (8, 2): [(2715, "Adding margin lowers the effective leverage: recompute with IMR = 4,500 / 30,000 = 15%.")],
+}
+for (pid, si), mis in _MIS.items():
+    BANK[pid].steps[si].misconceptions = mis
+for _p in BANK.values():
+    _p.topic_key = "bank:" + _p.topic
