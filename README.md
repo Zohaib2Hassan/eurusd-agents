@@ -83,3 +83,19 @@ drawdowns), cross-asset correlation, Supervisor checks, 15-section reports, SQLi
 .venv\Scripts\python.exe tests\test_quantx.py
 ```
 Design & roadmap: `docs/QUANTX_DESIGN.md` · DB schema: `docs/quantx_schema.sql`
+
+## Agent 3 - MicroEcon & Quant tutor (`microecon/`)
+Microeconomics + trading-risk maths with worked solutions and automated grading. Answer keys are computed
+by the solvers (the spec's Problem 4 key was wrong: expectancy is +$600, not +$937.50).
+
+```
+python micro_cli.py list                                   # problem bank
+python micro_cli.py practice --problem 3                   # graded practice (hint / show solution / quit)
+python micro_cli.py solve market 500 10 -100 15 --floor 30 # direct assistance, step by step
+python micro_cli.py solve fx 50000 1.5 1.0850 1.0810 --target 1.0970 --winrate 0.45
+python micro_cli.py solve liq 3000 --lev 10
+python micro_cli.py liquidity EURUSD                       # spread / Roll / Corwin-Schultz on real data
+python micro_cli.py liquidity BTCUSDT --source binance     # + Amihud illiquidity
+python tests\test_microecon.py
+```
+Design: `docs/MICROECON_AGENT.md`
